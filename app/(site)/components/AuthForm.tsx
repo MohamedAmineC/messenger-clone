@@ -2,16 +2,28 @@
 
 import Button from "@/app/components/Button"
 import Input from "@/app/components/inputs/Input"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useForm,FieldValues,SubmitHandler } from "react-hook-form"
 import AuthSocialButton from "./AuthSocialButton"
 import {BsGithub,BsGoogle} from "react-icons/bs"
+import axios from "axios"
+import {toast} from "react-hot-toast"
+import {signIn,useSession} from "next-auth/react"
+import {useRouter} from "next/navigation"
 
 type Variant = 'LOGIN' | 'REGISTER'
 
 const AuthForm = () => {
+    const session = useSession()
+    const router = useRouter();
     const [variant,setVariant] = useState<Variant>('LOGIN')
     const [isLoading,setIsLoading] = useState(false)
+
+    useEffect(() => {
+        if(session.status === 'authenticated'){
+            router.push('/users')
+        }
+    },[session?.status,router])
 
     const toggleVariant = useCallback(() => {
         setVariant(variant === 'LOGIN' ? 'REGISTER' : 'LOGIN')
@@ -34,15 +46,39 @@ const AuthForm = () => {
     const onSubmit:SubmitHandler<FieldValues> = (data) => {
         setIsLoading(true)
         if(variant === 'REGISTER'){
-            //axios register
+            axios.post('/api/register',data)
+            .then(() => signIn('credentials',data))
+            .catch((error) => {
+                toast.error(error.response.data)
+            }).finally(() => setIsLoading(false))
         }
         if(variant === 'LOGIN'){
-            //nextAuth Signin
+            signIn('credentials',{
+                ...data,
+                redirect: false,
+            }).then((callback) => {
+                if(callback?.error){
+                    toast.error('Invalid credentials')
+                }
+                if(callback?.ok && !callback.error){
+                    toast.success('Success')
+                    router.push('/users')
+                }
+            }).finally(() => setIsLoading(false))
         }
     }
     const socialAction = (action:string) => {
         setIsLoading(true)
-
+        signIn(action,{
+            redirect: false
+        }).then((callback) => {
+            if(callback?.error){
+                toast.error('Invalid credentials')
+            }
+            if(callback?.ok && !callback.error){
+                toast.success('Success')
+            }
+        }).finally(() => setIsLoading(false))
         //NextAuth Social Sign in
     }
   return (
