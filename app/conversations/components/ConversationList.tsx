@@ -43,15 +43,25 @@ const ConversationList:React.FC<ConversationListProps> = ({
       })
     }
     const updateHandler = (conversation:FullConversationType) => {
-      setItems((current) => current.map((currentConversation) => {
-        if(currentConversation.id === conversation.id){
-          return {
-            ...currentConversation,
-            messages: conversation.messages
-          }
+      setItems((current) => {
+    const updatedItems = current.map((currentConversation) => {
+      if(currentConversation.id === conversation.id){
+        return {
+          ...currentConversation,
+          messages: conversation.messages
         }
-        return currentConversation
-      }))
+      }
+      return currentConversation
+    });
+    
+    const conversationIndex = updatedItems.findIndex((item) => item.id === conversation.id);
+    
+    if (conversationIndex !== -1) {
+      updatedItems.unshift(updatedItems.splice(conversationIndex, 1)[0]);
+    }
+    
+    return updatedItems;
+  });
     }
     const removeHandler = (conversation:FullConversationType) => {
       setItems((current) => {
